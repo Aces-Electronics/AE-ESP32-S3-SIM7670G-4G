@@ -41,6 +41,7 @@ TinyGsm modem(SerialAT);
 String postURL;
 time_t now;                         // this is the epoch
 tm myTimeInfo;                      // the structure tm holds time information in a more convient way
+
 bool firstBoot = true;
 bool gpsUpdateSuccess;
 float SOC;
@@ -436,6 +437,7 @@ void clearGPSData()
 void updateGPSLocation()
 {
     int breakUpdateGPSLocation = 0;
+    int breakAccuracyRequirement = 0;
     clearGPSData();
     uint8_t    fixMode   = 0;
     for (int8_t i = 30; i; i--) { // change this back to 15 after implementing an accuracy increasing counter
@@ -456,10 +458,17 @@ void updateGPSLocation()
                 Serial.print("Accuracy:"); Serial.println(accuracy2);
                 Serial.println();
 
+                if (breakAccuracyRequirement > 9)
+                {
+                   newAccuracy = 0; // make the follow iftatement choose else
+                }
+
                 if (accuracy2 <= newAccuracy) {
+                    breakAccuracyRequirement++;
                     newAccuracy = accuracy2;
                     Serial.print("Accuracy increasing, continuing...\n");
                 } else {
+                    newAccuracy = 100; // reset the value from above
                     Serial.print("Disabling GPS...");
                     disableGPS();
                     Serial.print("Accuracy decreasing, updating location\n");
@@ -537,10 +546,10 @@ void loop()
 {
     //this should never be printed:
     Serial.println("Something is very worng!");
-    strip.setPixelColor(0, 0, 255, 0); // green
+    strip.setPixelColor(0, 0, 255, 0); // red
     strip.show();
     delay(1000);
-    strip.setPixelColor(0, 0, 0, 255); // green
+    strip.setPixelColor(0, 0, 0, 255); // blue
     strip.show();
 }
 
