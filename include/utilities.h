@@ -8,21 +8,18 @@
 // There is no modem power control, the LED Pin is used as a power indicator here.
 #define BOARD_POWERON_PIN                   (BOARD_LED_PIN)
 #define MODEM_RING_PIN                      (40) // 3
-#define MODEM_RESET_PIN                     (-1)
-#define MODEM_RESET_LEVEL                   LOW
 #define SerialAT                            Serial1
 
 #define NEOPIXEL                            (38)
-
-#define BOARD_BAT_ADC_PIN                   (4)
-#define BOARD_SOLAR_ADC_PIN                 (5)
-#define BOARD_MISO_PIN                      (47)
-#define BOARD_MOSI_PIN                      (14)
-#define BOARD_SCK_PIN                       (21)
-#define BOARD_SD_CS_PIN                     (13)
 
 #ifndef TINY_GSM_MODEM_SIM7672
 #define TINY_GSM_MODEM_SIM7672
 #endif
 
 #define MODEM_GPS_ENABLE_GPIO               (-1) //4
+
+// https://www.keyestudio.com/products/keyestudio-mma8452q-module-triaxial-digital-acceleration-tilt-sensor-for-arduino
+#define ACCEL_INT1                          (11)
+#define ACCEL_INT2                          (12)
+#define ACCEL_SCL                           (13)
+#define ACCEL_SDA                           (14)  

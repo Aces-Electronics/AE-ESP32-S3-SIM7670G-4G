@@ -8,12 +8,17 @@
  * @note      T-A7608 & T-A7608-S3 VBUS of the modem is connected to VUSB.
  *            When using USB power supply, the modem cannot be set to sleep mode. Please see README for details.
  */
+
+// example payload: AT+HTTPPARA="URL","http://124.176.216.142:8889/?id=864643060013606&lat=-28.025770&lon=153.387802&speed=0.20&sats=10&pdop=1.41&mov=1&dbatt=100.00&dinputv=13.01&vrpm=4051epoch=1729129629"
+// example payload: AT+HTTPPARA="URL","http://124.176.216.142:8889/?id=864643060013606&lat=-28.025709&lon=153.387680&speed=0.17&sats=8&pdop=1.18&mov=0&dbatt=100.00&dinputv=12.70&vrpm=0&timestamp=1732229085"
+
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #include <TinyGsmClient.h>
 #include <driver/gpio.h>
 #include <time.h>
 #include "MAX1704.h"
+#include "SparkFun_MMA8452Q.h"    // Click here to get the library: http://librarymanager/All#SparkFun_MMA8452Q
 #include <Wire.h>
 
 #include "utilities.h"
@@ -27,8 +32,13 @@
 #define uS_TO_S_FACTOR      1000000ULL  /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP       600          /* Time ESP32 will go to sleep (in seconds) */
 
+TwoWire MYI2C1 = TwoWire(1); 
+MMA8452Q accel;                   // create instance of the MMA8452 class
+
 MAX1704 fuelGauge;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, 38, NEO_GRB + NEO_KHZ800);
+
+#define TINY_GSM_DEBUG SerialAT
 
 #ifdef DUMP_AT_COMMANDS  // if enabled it requires the streamDebugger lib
 #include <StreamDebugger.h>
@@ -68,7 +78,7 @@ unsigned long getTime() {
   time_t now;
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
-    //Serial.println("Failed to obtain time");
+    Serial.println("Failed to obtain time");
     return(0);
   }
   time(&now);
@@ -97,6 +107,62 @@ void showTime() {
     else
         Serial.print("\tstandard");
     Serial.println();
+}
+
+void enableAccel()
+{
+    delay(2000);
+    pinMode(12, ACCEL_INT2);
+    pinMode(11, ACCEL_INT2);
+    pinMode(ACCEL_INT1, INPUT_PULLDOWN);
+    pinMode(ACCEL_INT2, INPUT_PULLDOWN);
+
+    MYI2C1.begin(ACCEL_SDA, ACCEL_SCL);
+
+    delay(1000);
+
+    if (accel.begin(MYI2C1) == false) {
+       Serial.println("Not Connected. Please check connections and read the hookup guide.");
+    }
+
+    accel.setDataRate(ODR_100);
+    accel.setScale(SCALE_2G);
+
+    while (1) {
+        // do something to wake on accel int
+        if (accel.available()) {      // Wait for new data from accelerometer
+            // Orientation of board (Right, Left, Down, Up);
+            float calcX = accel.getCalculatedX();
+            float calcY = accel.getCalculatedY();
+            float calcZ = accel.getCalculatedZ();
+            if (accel.isRight() == true) {
+                Serial.println("Right");
+            }
+            else if (accel.isLeft() == true) {
+                Serial.println("Left");
+            }
+            else if (accel.isUp() == true) {
+                Serial.println("Down");
+            }
+            else if (accel.isDown() == true) {
+                Serial.print("Up, "); Serial.print(calcX); Serial.print(", "); Serial.print(calcY); Serial.print(", "); Serial.print(calcZ);
+                if ((calcX < -0.2) || (calcX > 0.2)) {
+                    Serial.println(" Moving left or right!");
+                }
+                if ((calcY < 0.8) || (calcY > 1.2)) {
+                    Serial.println(" Moving up and down!");
+                }
+                if ((calcZ < -0.2) || (calcZ > 0.2)) {
+                    Serial.println(" Moving right or left!");
+                }
+            }
+            else if (accel.isFlat() == true) {
+                Serial.println("Flat");
+            }
+            Serial.println();
+        }
+        delay(1000);
+    }
 }
 
 void enableModem()
@@ -166,7 +232,7 @@ void sleepModem()
         }
     }
     if (breakCheckModemResponse > 14) {
-        Serial.println("Modem did not go to sleep, giving up and moving on!");
+        Serial.println("Modem did not go to sleep, maybe the USB cable is connected? Giving up and moving on!");
     } else {
         Serial.println("Modem is not responding to 'AT', modem is asleep!");
         // might not need the below
@@ -332,10 +398,10 @@ void disableGPS()
     modem.disableGPS(MODEM_GPS_ENABLE_GPIO);
 }
 
-void createPostURL()
+void createGetURL()
 {
 
-    // create POST URL
+    // create GET URL
     postURL += secretServerURL;
     postURL += "/?";
     postURL += "id=";
@@ -350,14 +416,20 @@ void createPostURL()
     postURL += String(vsat2);
     postURL += "&pdop=";
     postURL += String(accuracy2);
-    postURL += "&batt=";
-    postURL += String(SOC);
+    postURL += "&mov=";
+    postURL += String(0); // 0 for no movement, 1 for moving, as per accelerometer
+    postURL += "&dbatt=";
+    postURL += String(SOC); // was SOC
+    postURL += "&dinputv=";
+    postURL += String(12.70); // 0 for no movement, 1 for moving, as per accelerometer
+    postURL += "&vrpm=";
+    postURL += String(0); // 0 for no movement, 1 for moving, as per accelerometer
     postURL += "&timestamp=";
     postURL += String(epochTime);
     Serial.printf("URL: %s\n", postURL.c_str());
 }
 
-void postData()
+void getData()
 {
     // Initialize HTTPS
     modem.https_begin();
@@ -369,25 +441,29 @@ void postData()
     }
 
     modem.https_add_header("Accept-Language", "en-AU,en-GB;q=0.9,en-US;q=0.8,en;q=0.7");
-    modem.https_add_header("Accept-Encoding", "gzip, deflate, br");
-    modem.https_set_accept_type("application/json");
-    modem.https_set_user_agent("TinyGSM/LilyGo-A76XX");
+    //modem.https_add_header("Accept-Encoding", "gzip, deflate, br");
+    //modem.https_set_accept_type("application/json");
+    modem.https_set_user_agent("TinyGSM/AE-4GTv001");
 
-    String post_body = "AE!";
 
-    int httpCode = modem.https_post(post_body);
+    int httpCode = modem.https_get();
+
     if (httpCode == 706) {
-        Serial.println("HTTP post success!"); 
-        Serial.println("Green LED: HTTP POST success");
+        Serial.println("HTTPS GET success!"); 
+        Serial.println("Green LED: HTTPS GET success");
         strip.setPixelColor(0, 255, 0, 0); // green
         strip.show();
     } else if (httpCode == 714) {
-        Serial.println("Red LED: HTTP POST fail, server unavilable");
-        strip.setPixelColor(0, 0, 255, 0); // red
+        Serial.println("Red LED: HTTPS GET fail, server unavilable");
+        strip.setPixelColor(255, 0, 0, 0); // red
+        strip.show();
+    } else if (httpCode == 308) {
+        Serial.println("Blue LED: HTTPS GET 308, server moved");
+        strip.setPixelColor(0, 0, 255, 0); // blue
         strip.show();
     } else {
-        Serial.println("Red LED: HTTP POST failed");
-        Serial.print("HTTP post failed ! error code = "); 
+        Serial.println("Red LED: HTTPS GET failed");
+        Serial.print("HTTPS post failed ! error code = "); 
         Serial.println(httpCode); 
         Serial.println(); 
         strip.setPixelColor(0, 0, 255, 0); // red
@@ -476,8 +552,8 @@ void updateGPSLocation()
                     checkModemAwake();
                     getSOC();
                     checkModemOnline();
-                    createPostURL();
-                    postData();
+                    createGetURL();
+                    getData();
                     break;
                 }
             } else {
@@ -512,6 +588,8 @@ void setup()
     strip.setPixelColor(0, 0, 0, 255); // blue
     strip.show();
 
+    //enableAccel();
+
     SerialAT.begin(115200, SERIAL_8N1, MODEM_RX_PIN, MODEM_TX_PIN);
     delay(5000);
 
@@ -521,15 +599,15 @@ void setup()
         enableGPS();
         updateGPSLocation();
 
-        // Serial.println("Watch the LED...");
-        // delay(5000);
-        // digitalWrite(33, HIGH);
-        // delay(5000);
-        // digitalWrite(33, LOW);
-        // delay(5000);
-        // digitalWrite(33, HIGH);
-        // delay(5000);
-        // digitalWrite(33, LOW);
+        Serial.println("Watch the LED...");
+        delay(5000);
+        digitalWrite(33, HIGH);
+        delay(5000);
+        digitalWrite(33, LOW);
+        delay(5000);
+        digitalWrite(33, HIGH);
+        delay(5000);
+        digitalWrite(33, LOW);
 
     } else {
         Serial.println("Woken from sleep by timer...");
