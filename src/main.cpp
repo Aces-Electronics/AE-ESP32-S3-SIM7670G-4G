@@ -27,7 +27,7 @@
 #define TINY_GSM_RX_BUFFER          1024 // Set RX buffer to 1Kb
 
 // See all AT commands, if wanted
-#define DUMP_AT_COMMANDS
+// #define DUMP_AT_COMMANDS
 
 #define uS_TO_S_FACTOR      1000000ULL  /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP       600          /* Time ESP32 will go to sleep (in seconds) */
@@ -36,7 +36,7 @@ TwoWire MYI2C1 = TwoWire(1);
 MMA8452Q accel;                   // create instance of the MMA8452 class
 
 MAX1704 fuelGauge;
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, 38, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, 38, NEO_RGB + NEO_KHZ800); 
 
 #define TINY_GSM_DEBUG SerialAT
 
@@ -48,7 +48,7 @@ TinyGsm modem(debugger);
 TinyGsm modem(SerialAT);
 #endif
 
-String postURL;
+String getURL;
 time_t now;                         // this is the epoch
 tm myTimeInfo;                      // the structure tm holds time information in a more convient way
 
@@ -402,31 +402,31 @@ void createGetURL()
 {
 
     // create GET URL
-    postURL += secretServerURL;
-    postURL += "/?";
-    postURL += "id=";
-    postURL += String(modem.getIMEI());
-    postURL += "&lat=";
-    postURL += String(lat2, 6);
-    postURL += "&lon=";
-    postURL += String(lon2, 6);
-    postURL += "&speed=";
-    postURL += String(speed2);
-    postURL += "&sats=";
-    postURL += String(vsat2);
-    postURL += "&pdop=";
-    postURL += String(accuracy2);
-    postURL += "&mov=";
-    postURL += String(0); // 0 for no movement, 1 for moving, as per accelerometer
-    postURL += "&dbatt=";
-    postURL += String(SOC); // was SOC
-    postURL += "&dinputv=";
-    postURL += String(12.70); // 0 for no movement, 1 for moving, as per accelerometer
-    postURL += "&vrpm=";
-    postURL += String(0); // 0 for no movement, 1 for moving, as per accelerometer
-    postURL += "&timestamp=";
-    postURL += String(epochTime);
-    Serial.printf("URL: %s\n", postURL.c_str());
+    getURL += secretServerURL;
+    getURL += "?";
+    getURL += "id=";
+    getURL += String(modem.getIMEI());
+    getURL += "&lat=";
+    getURL += String(lat2, 6);
+    getURL += "&lon=";
+    getURL += String(lon2, 6);
+    getURL += "&speed=";
+    getURL += String(speed2);
+    getURL += "&sats=";
+    getURL += String(vsat2);
+    getURL += "&pdop=";
+    getURL += String(accuracy2);
+    getURL += "&mov=";
+    getURL += String(0); // 0 for no movement, 1 for moving, as per accelerometer
+    getURL += "&dbatt=";
+    getURL += String(SOC); // was SOC
+    getURL += "&dinputv=";
+    getURL += String(12.70); // 0 for no movement, 1 for moving, as per accelerometer
+    getURL += "&vrpm=";
+    getURL += String(0); // 0 for no movement, 1 for moving, as per accelerometer
+    getURL += "&timestamp=";
+    getURL += String(epochTime);
+    Serial.printf("URL: %s\n", getURL.c_str());
 }
 
 void getData()
@@ -435,38 +435,30 @@ void getData()
     modem.https_begin();
 
     // Set GET URL
-    if (!modem.https_set_url(postURL.c_str())) {
+    if (!modem.https_set_url(getURL.c_str())) {
         Serial.println("Failed to set the URL. Please check the validity of the URL!");
         return;
     }
 
     modem.https_add_header("Accept-Language", "en-AU,en-GB;q=0.9,en-US;q=0.8,en;q=0.7");
-    //modem.https_add_header("Accept-Encoding", "gzip, deflate, br");
-    //modem.https_set_accept_type("application/json");
+    modem.https_add_header("Accept-Encoding", "gzip, deflate, br");
+    modem.https_set_accept_type("application/json");
     modem.https_set_user_agent("TinyGSM/AE-4GTv001");
 
 
     int httpCode = modem.https_get();
 
-    if (httpCode == 706) {
+    if (httpCode == 200) {
         Serial.println("HTTPS GET success!"); 
         Serial.println("Green LED: HTTPS GET success");
-        strip.setPixelColor(0, 255, 0, 0); // green
-        strip.show();
-    } else if (httpCode == 714) {
-        Serial.println("Red LED: HTTPS GET fail, server unavilable");
-        strip.setPixelColor(255, 0, 0, 0); // red
-        strip.show();
-    } else if (httpCode == 308) {
-        Serial.println("Blue LED: HTTPS GET 308, server moved");
-        strip.setPixelColor(0, 0, 255, 0); // blue
+        strip.setPixelColor(0, 0, 255, 0); // green
         strip.show();
     } else {
         Serial.println("Red LED: HTTPS GET failed");
         Serial.print("HTTPS post failed ! error code = "); 
         Serial.println(httpCode); 
         Serial.println(); 
-        strip.setPixelColor(0, 0, 255, 0); // red
+        strip.setPixelColor(0, 255, 0, 0); // red
         strip.show();
         return;
     }
