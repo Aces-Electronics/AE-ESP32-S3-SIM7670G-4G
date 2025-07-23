@@ -226,7 +226,7 @@ void sleepModem()
         Serial.printf("Modem asked to sleep, not sleeping yet, retrying %i of 15 in 500ms...\n", breakCheckModemResponse); delay(500);
         if (breakCheckModemResponse > 14) {
             Serial.println("Red LED: Modem still awake");
-            strip.setPixelColor(0, 0, 255, 0); // red
+            strip.setPixelColor(0, 255, 99, 71); // orange, should only happen when charging
             strip.show();
             break;
         }
@@ -277,7 +277,7 @@ void checkModemOnline()
             // const char *SIMCARD_PIN_CODE = "123456";
             // modem.simUnlock(SIMCARD_PIN_CODE);
             Serial.println("Red LED: SIM locked");
-            strip.setPixelColor(0, 0, 255, 0); // red
+            strip.setPixelColor(0, 255, 0, 0); // red
             strip.show();
             break;
         default:
@@ -296,7 +296,7 @@ void checkModemOnline()
         case REG_UNREGISTERED:
         case REG_SEARCHING:
             Serial.println("Red LED: Modem searching");
-            strip.setPixelColor(0, 0, 255, 0); // red
+            strip.setPixelColor(0, 255, 255, 0); // yellow
             strip.show();
             sq = modem.getSignalQuality();
             Serial.printf("[%lu] Signal Quality:%d", millis() / 1000, sq);
@@ -305,13 +305,13 @@ void checkModemOnline()
         case REG_DENIED:
             Serial.println("Network registration was rejected, please check if the APN is correct");
             Serial.println("Red LED: Modem registration denied");
-            strip.setPixelColor(0, 0, 255, 0); // red
+            strip.setPixelColor(0, 255, 0, 0); // red
             strip.show();
             return ;
         case REG_OK_HOME:
             Serial.println("Green LED: Modem registration successful");
             Serial.println("Online registration successful");
-            strip.setPixelColor(0, 255, 255, 102); // yellow
+            strip.setPixelColor(0, 0, 0, 255); // blue
             strip.show();
             break;
         case REG_OK_ROAMING:
@@ -513,8 +513,8 @@ void updateGPSLocation()
         if (modem.getGPS(&fixMode, &lat2, &lon2, &speed2, &alt2, &vsat2, &usat2, &accuracy2,
                         &year2, &month2, &day2, &hour2, &min2, &sec2)) {
             if (speed2 > 0) { // here to stop some weird bug where the speed seems to be negative
-                Serial.println("Orange LED: GPS online, has lock, waiting for good HDOP");
-                strip.setPixelColor(0, 76, 200, 0); // orange
+                Serial.println("Blue LED: GPS online, has lock, waiting for good HDOP");
+                strip.setPixelColor(0, 0, 0, 255); // blue
                 strip.show();
                 gpsUpdateSuccess = true;
                 Serial.print("FixMode:"); Serial.println(fixMode);
@@ -551,15 +551,15 @@ void updateGPSLocation()
             } else {
                 Serial.println("GPS parse error, retrying in 2s.");
                 delay(2000L);
-                Serial.println("Red LED: GPS parse issue, temporary");
-                strip.setPixelColor(0, 0, 255, 0); // red
+                Serial.println("Yellow LED: GPS parse issue, temporary");
+                strip.setPixelColor(0, 255, 255, 0); // yellow
                 strip.show();
             }
         } else {
             breakUpdateGPSLocation++;
             Serial.printf("Couldn't get GPS location, retrying %i of 15 in 15s...", breakUpdateGPSLocation);
-            Serial.println("Red LED: No GPS lock");
-            strip.setPixelColor(0, 0, 255, 0); // red
+            Serial.println("Yellow LED: No GPS lock");
+            strip.setPixelColor(0, 255, 255, 0); // yellow
             strip.show();
             if (breakUpdateGPSLocation > 14) {
                 gpsUpdateSuccess = false;
@@ -615,11 +615,11 @@ void setup()
 void loop()
 {
     //this should never be printed:
-    Serial.println("Something is very worng!");
-    strip.setPixelColor(0, 0, 255, 0); // red
+    Serial.println("Something is very wrong!");
+    strip.setPixelColor(0, 128, 0, 128); // purple
     strip.show();
     delay(1000);
-    strip.setPixelColor(0, 0, 0, 255); // blue
+    strip.setPixelColor(0, 255, 0, 0); // red
     strip.show();
 }
 
