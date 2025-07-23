@@ -491,7 +491,7 @@ class TinyGsmSim7672 : public TinyGsmModem<TinyGsmSim7672>,
  
 
   // get GPS informations
-  bool getGPSImpl(uint8_t *status,float* lat, float* lon, float* speed = 0, float* alt = 0,
+  bool getGPSImpl(uint8_t *status,float* lat, float* lon, float* speed = 0, float* course = 0, float* alt = 0,
                   int* vsat = 0, int* usat = 0, float* accuracy = 0,
                   int* year = 0, int* month = 0, int* day = 0, int* hour = 0,
                   int* minute = 0, int* second = 0) {
@@ -513,6 +513,7 @@ class TinyGsmSim7672 : public TinyGsmModem<TinyGsmSim7672>,
       float ialt         = 0;
       int   ivsat        = 0;
       int   iusat        = 0;
+      float   icourse      = 0;
       float iaccuracy    = 0;
       int   iyear        = 0;
       int   imonth       = 0;
@@ -545,7 +546,7 @@ class TinyGsmSim7672 : public TinyGsmModem<TinyGsmSim7672>,
 
       ialt   = streamGetFloatBefore(',');  // MSL Altitude. Unit is meters
       ispeed = streamGetFloatBefore(',');  // Speed Over Ground. Unit is knots.
-      streamSkipUntil(',');                // Course Over Ground. Degrees.
+      icourse = streamSkipUntil(',');                // Course Over Ground. Degrees.
       streamSkipUntil(',');  // After set, will report GPS every x seconds
       iaccuracy = streamGetFloatBefore(',');  // Position Dilution Of Precision
       streamSkipUntil(',');   // Horizontal Dilution Of Precision
@@ -566,6 +567,7 @@ class TinyGsmSim7672 : public TinyGsmModem<TinyGsmSim7672>,
       if (alt != NULL) *alt = ialt;
       if (vsat != NULL) *vsat = ivsat;
       if (usat != NULL) *usat = iusat;
+      if (course != NULL) *course = icourse;
       if (accuracy != NULL) *accuracy = iaccuracy;
       if (iyear < 2000) iyear += 2000;
       if (year != NULL) *year = iyear;

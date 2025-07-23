@@ -20,6 +20,7 @@
 #include "MAX1704.h"
 #include "SparkFun_MMA8452Q.h"    // Click here to get the library: http://librarymanager/All#SparkFun_MMA8452Q
 #include <Wire.h>
+#include <WiFi.h>
 
 #include "utilities.h"
 #include "secrets.h"
@@ -30,7 +31,7 @@
 // #define DUMP_AT_COMMANDS
 
 #define uS_TO_S_FACTOR      1000000ULL  /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP       600          /* Time ESP32 will go to sleep (in seconds) */
+#define TIME_TO_SLEEP       60          /* Time ESP32 will go to sleep (in seconds) */
 
 TwoWire MYI2C1 = TwoWire(1); 
 MMA8452Q accel;                   // create instance of the MMA8452 class
@@ -59,6 +60,7 @@ float newAccuracy = 100;
 float lat2      = 0;
 float lon2      = 0;
 float speed2    = 0;
+float course2  = 0;
 float alt2      = 0;
 int   vsat2     = 0;
 int   usat2     = 0;
@@ -400,32 +402,29 @@ void disableGPS()
 
 void createGetURL()
 {
-
+    // server expects:
+    //GET /api/gps_data?mac_address=AA:BB:CC:DD:EE:FF&latitude=40.7128&longitude=-74.0060&speed=25.5&heading=180&battery_voltage=3.7&device_voltage=12.0
+    
+    // real data from this device:
+    //URL: http://84ace.com:5500/api/gps_data?mac_address=34:85:18:B8:2C:B0&latitude=-28.025801&longitude=153.387787&speed=2.22&heading=0&battery_voltage=100.00&device_voltage=12.70
+    
     // create GET URL
-    getURL += secretServerURL;
-    getURL += "?";
-    getURL += "id=";
-    getURL += String(modem.getIMEI());
-    getURL += "&lat=";
+    getURL = secretServerURL;  // Reset the URL string
+    getURL += "mac_address=";
+    getURL += WiFi.macAddress();  // Use WiFi MAC address instead of IMEI
+    getURL += "&latitude=";
     getURL += String(lat2, 6);
-    getURL += "&lon=";
+    getURL += "&longitude=";
     getURL += String(lon2, 6);
     getURL += "&speed=";
     getURL += String(speed2);
-    getURL += "&sats=";
-    getURL += String(vsat2);
-    getURL += "&pdop=";
-    getURL += String(accuracy2);
-    getURL += "&mov=";
-    getURL += String(0); // 0 for no movement, 1 for moving, as per accelerometer
-    getURL += "&dbatt=";
-    getURL += String(SOC); // was SOC
-    getURL += "&dinputv=";
-    getURL += String(12.70); // 0 for no movement, 1 for moving, as per accelerometer
-    getURL += "&vrpm=";
-    getURL += String(0); // 0 for no movement, 1 for moving, as per accelerometer
-    getURL += "&timestamp=";
-    getURL += String(epochTime);
+    getURL += "&heading=";
+    getURL += String(course2);  // Add heading parameter (you may want to use actual heading data)
+    getURL += "&battery_voltage=";
+    getURL += String(SOC);  // Using your SOC value for battery voltage
+    getURL += "&device_voltage=";
+    getURL += String(12.70);  // Using your existing device voltage value
+    
     Serial.printf("URL: %s\n", getURL.c_str());
 }
 
@@ -490,6 +489,7 @@ void clearGPSData()
     lat2      = 0;
     lon2      = 0;
     speed2    = 0;
+    course2  = 0;
     alt2      = 0;
     vsat2     = 0;
     usat2     = 0;
@@ -510,7 +510,7 @@ void updateGPSLocation()
     uint8_t    fixMode   = 0;
     for (int8_t i = 30; i; i--) { // change this back to 15 after implementing an accuracy increasing counter
         Serial.println("Requesting current GPS/GNSS/GLONASS location");
-        if (modem.getGPS(&fixMode, &lat2, &lon2, &speed2, &alt2, &vsat2, &usat2, &accuracy2,
+        if (modem.getGPS(&fixMode, &lat2, &lon2, &speed2, &course2, &alt2, &vsat2, &usat2, &accuracy2,
                         &year2, &month2, &day2, &hour2, &min2, &sec2)) {
             if (speed2 > 0) { // here to stop some weird bug where the speed seems to be negative
                 Serial.println("Blue LED: GPS online, has lock, waiting for good HDOP");
@@ -521,6 +521,7 @@ void updateGPSLocation()
                 Serial.print("Latitude:"); Serial.println(lat2, 6); 
                 Serial.print("Longitude:"); Serial.println(lon2, 6);
                 Serial.print("Speed:"); Serial.println(speed2); 
+                Serial.print("Heading:"); Serial.println(course2); 
                 Serial.print("Altitude:"); Serial.println(alt2);
                 Serial.print("Visible Satellites:"); Serial.println(vsat2); 
                 Serial.print("Accuracy:"); Serial.println(accuracy2);

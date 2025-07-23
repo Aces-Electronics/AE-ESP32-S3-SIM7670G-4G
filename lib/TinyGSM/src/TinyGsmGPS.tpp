@@ -33,11 +33,11 @@ class TinyGsmGPS {
   String getGPSraw() {
     return thisModem().getGPSrawImpl();
   }
-  bool getGPS(uint8_t *status,float* lat, float* lon, float* speed = 0, float* alt = 0,
+  bool getGPS(uint8_t *status,float* lat, float* lon, float* speed = 0, float* course = 0, float* alt = 0,
               int* vsat = 0, int* usat = 0, float* accuracy = 0, int* year = 0,
               int* month = 0, int* day = 0, int* hour = 0, int* minute = 0,
               int* second = 0) {
-    return thisModem().getGPSImpl(status,lat, lon, speed, alt, vsat, usat, accuracy,
+    return thisModem().getGPSImpl(status,lat, lon, speed, course, alt, vsat, usat, accuracy,
                                   year, month, day, hour, minute, second);
   }
   bool getGPSTime(int* year, int* month, int* day, int* hour, int* minute,
@@ -91,7 +91,7 @@ class TinyGsmGPS {
   bool    disableGPSImpl(int8_t power_en_pin ,uint8_t disbale_level) TINY_GSM_ATTR_NOT_IMPLEMENTED;
   bool    isEnableGPSImpl() TINY_GSM_ATTR_NOT_IMPLEMENTED;
   String  getGPSrawImpl() TINY_GSM_ATTR_NOT_IMPLEMENTED;
-  bool    getGPSImpl(uint8_t *status,float* lat, float* lon, float* speed = 0, float* alt = 0,
+  bool    getGPSImpl(uint8_t *status,float* lat, float* lon, float* speed = 0, float* course = 0, float* alt = 0,
                      int* vsat = 0, int* usat = 0, float* accuracy = 0,
                      int* year = 0, int* month = 0, int* day = 0, int* hour = 0,
                      int* minute = 0,
