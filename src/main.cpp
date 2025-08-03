@@ -297,8 +297,8 @@ void checkModemOnline()
         switch (status) {
         case REG_UNREGISTERED:
         case REG_SEARCHING:
-            Serial.println("Red LED: Modem searching");
-            strip.setPixelColor(0, 255, 255, 0); // yellow
+            Serial.println("Yellow LED: Modem searching");
+            strip.setPixelColor(0, 255, 255, 102); // yellow
             strip.show();
             sq = modem.getSignalQuality();
             Serial.printf("[%lu] Signal Quality:%d", millis() / 1000, sq);
@@ -311,9 +311,9 @@ void checkModemOnline()
             strip.show();
             return ;
         case REG_OK_HOME:
-            Serial.println("Green LED: Modem registration successful");
+            Serial.println("Yellow LED: Modem registration successful");
             Serial.println("Online registration successful");
-            strip.setPixelColor(0, 0, 0, 255); // blue
+            strip.setPixelColor(0,154,205,50); // blue
             strip.show();
             break;
         case REG_OK_ROAMING:
@@ -489,7 +489,7 @@ void clearGPSData()
     lat2      = 0;
     lon2      = 0;
     speed2    = 0;
-    course2  = 0;
+    course2   = 0;
     alt2      = 0;
     vsat2     = 0;
     usat2     = 0;
@@ -514,7 +514,7 @@ void updateGPSLocation()
                         &year2, &month2, &day2, &hour2, &min2, &sec2)) {
             if (speed2 > 0) { // here to stop some weird bug where the speed seems to be negative
                 Serial.println("Blue LED: GPS online, has lock, waiting for good HDOP");
-                strip.setPixelColor(0, 0, 0, 255); // blue
+                strip.setPixelColor(0, 154,205,50); // yellow-green
                 strip.show();
                 gpsUpdateSuccess = true;
                 Serial.print("FixMode:"); Serial.println(fixMode);
@@ -553,14 +553,14 @@ void updateGPSLocation()
                 Serial.println("GPS parse error, retrying in 2s.");
                 delay(2000L);
                 Serial.println("Yellow LED: GPS parse issue, temporary");
-                strip.setPixelColor(0, 255, 255, 0); // yellow
+                strip.setPixelColor(0, 255, 255, 102); // yellow
                 strip.show();
             }
         } else {
             breakUpdateGPSLocation++;
             Serial.printf("Couldn't get GPS location, retrying %i of 15 in 15s...", breakUpdateGPSLocation);
             Serial.println("Yellow LED: No GPS lock");
-            strip.setPixelColor(0, 255, 255, 0); // yellow
+            strip.setPixelColor(0, 255, 255, 102); // yellow
             strip.show();
             if (breakUpdateGPSLocation > 14) {
                 gpsUpdateSuccess = false;

@@ -513,7 +513,7 @@ class TinyGsmSim7672 : public TinyGsmModem<TinyGsmSim7672>,
       float ialt         = 0;
       int   ivsat        = 0;
       int   iusat        = 0;
-      float   icourse      = 0;
+      float   icourse    = 0;
       float iaccuracy    = 0;
       int   iyear        = 0;
       int   imonth       = 0;
@@ -546,7 +546,7 @@ class TinyGsmSim7672 : public TinyGsmModem<TinyGsmSim7672>,
 
       ialt   = streamGetFloatBefore(',');  // MSL Altitude. Unit is meters
       ispeed = streamGetFloatBefore(',');  // Speed Over Ground. Unit is knots.
-      icourse = streamSkipUntil(',');                // Course Over Ground. Degrees.
+      icourse = streamGetFloatBefore(',');                // Course Over Ground. Degrees.
       streamSkipUntil(',');  // After set, will report GPS every x seconds
       iaccuracy = streamGetFloatBefore(',');  // Position Dilution Of Precision
       streamSkipUntil(',');   // Horizontal Dilution Of Precision
